@@ -1,0 +1,27 @@
+@import "tailwindcss";
+@media print {
+  aside, header {
+    display: none;
+  }
+}
+@custom-variant dark (&:where(.dark, .dark *));
+
+.dark {
+  --color-surface: #0B1220;
+  --color-gray-50: #1E293B;
+  --color-gray-100: #273449;
+  --color-gray-200: #334155;
+  --color-gray-300: #475569;
+  --color-gray-400: #64748B;
+  --color-gray-500: #94A3B8;
+  --color-gray-600: #CBD5E1;
+  --color-gray-700: #E2E8F0;
+  --color-gray-800: #F1F5F9;
+  --color-gray-900: #F8FAFC;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-fade-in { animation: fade-in 0.2s ease-out; }

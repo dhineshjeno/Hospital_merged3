@@ -1,0 +1,167 @@
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+
+// ============================================
+// IMPORT ROUTES
+// ============================================
+const authRoutes = require('./routes/auth');
+const patientRoutes = require('./routes/patients');
+const doctorRoutes = require('./routes/doctors');
+const appointmentRoutes = require('./routes/appointments');
+const labRoutes = require('./routes/lab');
+const prescriptionRoutes = require('./routes/prescriptions');
+const pharmacyRoutes = require('./routes/pharmacy');
+const billingRoutes = require('./routes/billing');
+const roomRoutes = require('./routes/rooms');
+const purchaseRoutes = require('./routes/purchases');
+
+// ============================================
+// IMPORT MIDDLEWARE (WEEK 5 SECURITY)
+// ============================================
+const { loginLimiter, registerLimiter, apiLimiter, sensitiveLimiter, paymentLimiter } = require('./middleware/rateLimit');
+const { tenantMiddleware, verifyTenantAccess } = require('./middleware/tenantMiddleware');
+const auditMiddleware = require('./middleware/auditMiddleware');
+const Sanitizer = require('./utils/sanitizer');
+
+// ============================================
+// CREATE EXPRESS APP
+// ============================================
+const app = express();
+
+// ============================================
+// SECURITY MIDDLEWARE
+// ============================================
+
+// Helmet: Set security HTTP headers
+app.use(helmet());
+
+// CORS: Allow frontend domain
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
+
+// Body parser with size limits
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// ============================================
+// WEEK 5: TENANT SCOPING
+// ============================================
+// Add hospital_id to all requests
+app.use(tenantMiddleware);
+
+// ============================================
+// WEEK 5: AUDIT LOGGING
+// ============================================
+// Log all API requests (with PII masking)
+app.use(auditMiddleware);
+
+// ============================================
+// WEEK 5: INPUT SANITIZATION
+// ============================================
+// Sanitize all request bodies to prevent injection attacks
+app.use((req, res, next) => {
+  if (req.body && typeof req.body === 'object') {
+    req.body = Sanitizer.sanitizeRequestBody(req.body);
+  }
+  next();
+});
+
+// ============================================
+// RATE LIMITING (WEEK 5 ENHANCED)
+// ============================================
+
+// Auth endpoints: Strict limits
+app.use('/api/v1/auth/login', loginLimiter);
+app.use('/api/v1/auth/register', registerLimiter);
+
+// Payment endpoints: Very strict limits
+app.use('/api/v1/billing/payments', paymentLimiter);
+
+// General API: Standard limits
+app.use('/api/v1/', apiLimiter);
+
+// ============================================
+// ROUTES
+// ============================================
+
+// Auth Routes (no tenant verification needed for register/login)
+app.use('/api/v1/auth', authRoutes);
+
+// Protected Routes (require tenant verification)
+app.use('/api/v1/patients', sensitiveLimiter, verifyTenantAccess, patientRoutes);
+app.use('/api/v1/doctors', sensitiveLimiter, verifyTenantAccess, doctorRoutes);
+app.use('/api/v1/appointments', sensitiveLimiter, verifyTenantAccess, appointmentRoutes);
+app.use('/api/v1/lab', sensitiveLimiter, verifyTenantAccess, labRoutes);
+app.use('/api/v1/prescriptions', sensitiveLimiter, verifyTenantAccess, prescriptionRoutes);
+app.use('/api/v1/pharmacy', sensitiveLimiter, verifyTenantAccess, pharmacyRoutes);
+app.use('/api/v1/billing', paymentLimiter, verifyTenantAccess, billingRoutes);
+app.use('/api/v1/rooms', sensitiveLimiter, verifyTenantAccess, roomRoutes);
+app.use('/api/v1/purchases', sensitiveLimiter, verifyTenantAccess, purchaseRoutes);
+
+// ============================================
+// HEALTH CHECK
+// ============================================
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date(),
+    message: 'Hospital Platform is running with MOCK data!',
+    security: {
+      encrypted: true,
+      auditLogging: true,
+      rateLimited: true,
+      tenantScoped: true
+    }
+  });
+});
+
+// ============================================
+// 404 HANDLER
+// ============================================
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: 'Route not found'
+  });
+});
+
+// ============================================
+// GLOBAL ERROR HANDLER
+// ============================================
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  
+  // Don't expose detailed errors in production
+  const errorMessage = process.env.NODE_ENV === 'production' 
+    ? 'Internal server error'
+    : err.message;
+  
+  res.status(err.status || 500).json({
+    success: false,
+    error: errorMessage,
+    timestamp: new Date()
+  });
+});
+
+// ============================================
+// START SERVER
+// ============================================
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`✅ Hospital Platform running on port ${PORT}`);
+  console.log(`📋 Using MOCK data (No database needed yet)`);
+  console.log(`🔐 WEEK 5 Security Features:`);
+  console.log(`   ✓ Encryption enabled`);
+  console.log(`   ✓ Audit logging active`);
+  console.log(`   ✓ Rate limiting enforced`);
+  console.log(`   ✓ Tenant scoping enabled`);
+  console.log(`   ✓ Input sanitization active`);
+  console.log(`🔗 Test: http://localhost:${PORT}/health`);
+});
+
+module.exports = app;

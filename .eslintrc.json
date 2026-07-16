@@ -1,0 +1,15 @@
+{
+  "root": true,
+  "env": { "node": true, "es2022": true, "jest": true },
+  "parserOptions": { "ecmaVersion": 2022, "sourceType": "script" },
+  "extends": ["eslint:recommended", "plugin:security/recommended-legacy"],
+  "plugins": ["security"],
+  "rules": {
+    "no-console": "off",
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_|^next$" }],
+    "eqeqeq": ["error", "smart"],
+    "no-var": "error",
+    "prefer-const": "error",
+    "security/detect-object-injection": "off"
+  }
+}
