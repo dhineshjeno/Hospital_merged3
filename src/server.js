@@ -42,7 +42,6 @@ const billingRoutes = require('./routes/v1/billingRoutes');
 const wardRoutes = require('./routes/v1/wardRoutes');
 const pharmacyRoutes = require('./routes/v1/pharmacyRoutes');
 const queueRoutes = require('./routes/v1/queueRoutes');
-
 // ── Middleware ──────────────────────────────────────────────────────────────
 const { authenticateToken } = require('./middleware/auth');
 const { tenantMiddleware } = require('./middleware/tenantMiddleware');
@@ -135,6 +134,8 @@ app.use('/api/v1/ehr', ehrRoutes);
 app.use('/api/v1/prescriptions', prescriptionRoutes);
 app.use('/api/v1/lab', labRoutes);
 app.use('/api/v1/billing', billingRoutes);
+app.use('/api/v1/queue', queueRoutes);
+app.use('/api/v1/pharmacy', pharmacyRoutes);
 app.use('/api/v1/wards', wardRoutes);
 app.use('/api/v1/admissions', wardRoutes);
 app.use('/api/v1/pharmacy', pharmacyRoutes);

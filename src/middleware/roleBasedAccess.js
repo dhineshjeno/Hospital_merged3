@@ -49,7 +49,7 @@ const ROLE_PERMISSIONS = {
 
     // Appointments & Queue
     appointments: ['create', 'read', 'update', 'cancel'],
-    queue: ['read', 'manage'],
+    queue: ['create', 'read', 'update', 'delete', 'manage'],
 
     // Admissions & Ward Management
     admissions: ['create', 'read', 'update'],
@@ -94,7 +94,8 @@ const ROLE_PERMISSIONS = {
 
     // Appointments & Queue
     appointments: ['create', 'read', 'update:own', 'cancel:own'],
-    queue: ['read'],
+    queue: ['read', 'update'],
+    medicines: ['read'],
     doctor_schedules: ['read', 'update:own'],
 
     // Admissions (their patients only)
@@ -120,8 +121,12 @@ const ROLE_PERMISSIONS = {
     prescriptions: ['read'],
 
     // Appointments & Queue
-    appointments: ['read', 'update:check_in'],
-    queue: ['read', 'update:call_next'],
+    // NOTE: 'update:check_in' / 'update:call_next' were decorative — the scope
+    // handler never implemented them, so they granted full 'update' anyway.
+    // Stated explicitly now; narrow again once the scopes are implemented.
+    appointments: ['read', 'update'],
+    queue: ['read', 'update'],
+    medicines: ['read'],
 
     // Admissions & Ward
     admissions: ['read'],
@@ -140,15 +145,16 @@ const ROLE_PERMISSIONS = {
     users: ['read:self', 'update:self'],
 
     // Prescription fulfillment
-    prescriptions: ['read', 'update:dispense'],
-    medicines: ['read'],
-    medicine_inventory: ['read', 'update:dispense'],
+    prescriptions: ['read', 'update'],
+    // Pharmacist owns inventory: receive batches, adjust stock, dispense.
+    medicines: ['create', 'read', 'update'],
+    medicine_inventory: ['create', 'read', 'update'],
 
     // Patients (for prescription context)
     patients: ['read'],
 
     // Reordering
-    purchase_orders: ['create:request'],
+    purchase_orders: ['create'],
     vendors: ['read'],
   },
 
@@ -176,7 +182,9 @@ const ROLE_PERMISSIONS = {
     users: ['read:self', 'update:self'],
 
     // Lab work
-    lab_orders: ['read', 'update:collect_sample'],
+    // 'update:collect_sample' was decorative (scope never implemented →
+    // granted full 'update'). Stated explicitly.
+    lab_orders: ['read', 'update'],
     lab_results: ['create', 'read'],
     lab_test_catalog: ['read'],
 
@@ -194,6 +202,10 @@ const ROLE_PERMISSIONS = {
     hospital: ['read'],
     lab_orders: ['read'],
     lab_results: ['read'],
+
+    // Reception desk: patient check-in is the ONLY path that creates queue
+    // entries — no role could do it before, so the queue was unusable.
+    queue: ['create', 'read', 'update'],
   },
 };
 
@@ -269,7 +281,12 @@ function requirePermission(resource, action) {
           return true;
         }
 
-        return true;
+        // FAIL CLOSED on unrecognized scopes.
+        // Previously this returned true, which meant a permission like
+        // 'update:call_next' silently granted FULL 'update' — any scope this
+        // function doesn't understand became an unrestricted grant. Unknown
+        // scope now = denied; implement the scope explicitly above to allow it.
+        return false;
       });
 
       if (!hasSpecialPermission) {
