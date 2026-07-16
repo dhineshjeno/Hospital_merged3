@@ -57,6 +57,17 @@ function isLocalHost(urlString) {
 }
 
 function buildSslConfig() {
+  // ORDER MATTERS: localhost is checked FIRST.
+  // Previously the CA-file check came first, which meant that once
+  // certs/aiven-ca.pem was committed (as it should be), every LOCAL database
+  // connection — dev machines, the CI postgres service, test databases — was
+  // forced through TLS against Aiven's CA and failed with "self-signed
+  // certificate". A loopback connection never leaves the machine, so TLS
+  // there protects nothing; remote connections still require verify-full.
+  if (isLocalHost(rawUrl)) {
+    return false; // local dev/CI database: no TLS layer
+  }
+
   const caPath = process.env.PG_CA_CERT_PATH || './certs/aiven-ca.pem';
   const resolved = path.resolve(process.cwd(), caPath);
 
@@ -66,10 +77,6 @@ function buildSslConfig() {
       rejectUnauthorized: true, // verify-full: chain AND hostname
       minVersion: 'TLSv1.2',
     };
-  }
-
-  if (isLocalHost(rawUrl)) {
-    return false; // local dev database: no TLS layer
   }
 
   // Remote database and no CA on disk: refuse to start. Never fall back to
