@@ -119,6 +119,7 @@ app.get('/health', (req, res) => {
 
 // ── PUBLIC routes (no token yet) ────────────────────────────────────────────
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/patient-portal', require('./P07/patientPortalRoutes'));
 
 // ── GLOBAL GUARD for everything else under /api/v1 ──────────────────────────
 // Order matters: auth routes above already handled their requests. Any other
@@ -146,7 +147,7 @@ app.use('/api/v1/queue', queueRoutes);
 // --- Missing modules routes ---
 app.use('/api/v1/schedule', require('./P04/scheduleRoutes'));
 app.use('/api/v1/search', require('./P06/searchRoutes'));
-app.use('/api/v1/patient-portal', require('./P07/patientPortalRoutes'));
+
 app.use('/api/v1/reports', require('./P14/reportsRoutes'));
 
 app.use(notFoundHandler);
