@@ -32,16 +32,16 @@ const helmet = require('helmet');
 
 // ── Routes ──────────────────────────────────────────────────────────────────
 const authRoutes = require('./routes/auth');
-const patientRoutes = require('./routes/v1/patientsRoutes');
-const doctorRoutes = require('./routes/v1/doctorsRoutes');
-const appointmentRoutes = require('./routes/v1/appointmentsRoutes');
-const ehrRoutes = require('./routes/v1/ehrRoutes');
-const prescriptionRoutes = require('./routes/v1/prescriptionsRoutes');
-const labRoutes = require('./routes/v1/labRoutes');
-const billingRoutes = require('./routes/v1/billingRoutes');
-const wardRoutes = require('./routes/v1/wardRoutes');
-const pharmacyRoutes = require('./routes/v1/pharmacyRoutes');
-const queueRoutes = require('./routes/v1/queueRoutes');
+const patientRoutes = require('./P01/patientsRoutes');
+const doctorRoutes = require('./P02/doctorsRoutes');
+const appointmentRoutes = require('./P03/appointmentsRoutes');
+const ehrRoutes = require('./P08/ehrRoutes');
+const prescriptionRoutes = require('./P09/prescriptionsRoutes');
+const labRoutes = require('./P10/labRoutes');
+const billingRoutes = require('./P12/billingRoutes');
+const wardRoutes = require('./P13/wardRoutes');
+const pharmacyRoutes = require('./P11/pharmacyRoutes');
+const queueRoutes = require('./P05/queueRoutes');
 // ── Middleware ──────────────────────────────────────────────────────────────
 const { authenticateToken } = require('./middleware/auth');
 const { tenantMiddleware } = require('./middleware/tenantMiddleware');
@@ -142,6 +142,13 @@ app.use('/api/v1/pharmacy', pharmacyRoutes);
 app.use('/api/v1/queue', queueRoutes);
 
 // ── 404 + error handling (error handler MUST be last) ──────────────────────
+
+// --- Missing modules routes ---
+app.use('/api/v1/schedule', require('./P04/scheduleRoutes'));
+app.use('/api/v1/search', require('./P06/searchRoutes'));
+app.use('/api/v1/patient-portal', require('./P07/patientPortalRoutes'));
+app.use('/api/v1/reports', require('./P14/reportsRoutes'));
+
 app.use(notFoundHandler);
 app.use(errorHandler);
 
