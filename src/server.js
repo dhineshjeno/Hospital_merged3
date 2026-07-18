@@ -139,8 +139,6 @@ app.use('/api/v1/queue', queueRoutes);
 app.use('/api/v1/pharmacy', pharmacyRoutes);
 app.use('/api/v1/wards', wardRoutes);
 app.use('/api/v1/admissions', wardRoutes);
-app.use('/api/v1/pharmacy', pharmacyRoutes);
-app.use('/api/v1/queue', queueRoutes);
 
 app.use('/api/v1/rooms', require('./P16/legacyRoomRoutes'));
 
