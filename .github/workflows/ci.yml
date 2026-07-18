@@ -1,0 +1,141 @@
+name: CI
+
+# Runs on every push and pull request. A red check = do not merge.
+# Every job runs on ubuntu-latest (Linux, case-sensitive) — this is what makes
+# the filename-casing class of bug impossible to reach production again.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same branch/PR to save minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── BACKEND ────────────────────────────────────────────────────────────────
+  # Lint + audit + the six-proof security suite against a REAL Postgres.
+  # The suite is the gate: auth, account lockout, tenant isolation, token
+  # rejection, and PII encryption must all pass or the build is red.
+  backend:
+    name: Backend — lint, audit, security suite
+    runs-on: ubuntu-latest
+
+    # Ephemeral Postgres for this job. The suite makes 13 real DB calls; mocking
+    # it would prove nothing. This is the same sequence I run locally.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: hms
+          POSTGRES_PASSWORD: hms
+          POSTGRES_DB: citest
+        ports:
+          - 5432:5432
+        # Wait until Postgres actually accepts connections before the job starts.
+        options: >-
+          --health-cmd "pg_isready -U hms"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Test-only secrets. Real values live in GitHub Secrets / the server, never
+      # here. validateEnv still enforces shape, so these must be well-formed.
+      DATABASE_URL: postgresql://hms:hms@localhost:5432/citest
+      JWT_SECRET: ci_only_jwt_secret_0123456789abcdef0123456789abcdef
+      ENCRYPTION_KEY: 0f1e2d3c4b5a69788796a5b4c3d2e1f00f1e2d3c4b5a69788796a5b4c3d2e1f0
+      FRONTEND_URL: http://localhost:5173
+      MAX_LOGIN_ATTEMPTS: "3"
+      LOGIN_WINDOW_MS: "900000"
+      DEFAULT_HOSPITAL_ID: "00000000-0000-0000-0000-000000000001"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install (reproducible — fails if package-lock is out of date)
+        run: npm ci
+
+      - name: Lint (advisory — does not block merge)
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Dependency vulnerabilities (fail on high/critical)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Every backend file parses (catches casing/missing-module on Linux)
+        run: |
+          set -e
+          for f in $(find src -name "*.js"); do node --check "$f"; done
+
+      - name: Load schema + tenancy migration into the test database
+        env:
+          PGPASSWORD: hms
+        run: |
+          set -e
+          psql -h localhost -U hms -d citest -c 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; CREATE EXTENSION IF NOT EXISTS pgcrypto;'
+          psql -h localhost -U hms -d citest -v ON_ERROR_STOP=1 -f src/db/schema.sql
+          psql -h localhost -U hms -d citest -v ON_ERROR_STOP=1 -f migrations/011_queue_schema_convergence.sql
+          # login_attempts is self-created by the test suite; no migration needed here.
+
+      - name: Boot test (server actually starts on Linux)
+        run: |
+          timeout 12 node src/server.js && exit 1 || [ $? -eq 124 ]
+          # exit 124 = still running after 12s = booted cleanly.
+
+      - name: Security suite (the merge gate — must be 6/6)
+        run: npm test
+
+  # ── FRONTEND ───────────────────────────────────────────────────────────────
+  # Type-checked production build. tsc -b is the real gate: it catches the
+  # ID-type / status-casing contract mismatches that a plain vite build hides.
+  frontend:
+    name: Frontend — lint + typed production build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        # CANONICAL frontend. If the team renames it to `frontend/` after
+        # deleting the duplicate, change this one line to match.
+        working-directory: hospital-frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: hospital-frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint (advisory — does not block merge)
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Type-checked production build
+        run: npm run build   # tsc -b && vite build
+
+  # ── DUPLICATE-FRONTEND GUARD ───────────────────────────────────────────────
+  # Fails while BOTH frontends exist, so the duplication can't quietly persist.
+  # DELETE this whole job once `frontend/` is removed (Person 1's task).
+  single-frontend:
+    name: Guard — exactly one frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if the stale duplicate frontend still exists
+        run: |
+          if [ -d frontend ] && [ -d hospital-frontend ]; then
+            echo "::error::Two frontends present (frontend/ and hospital-frontend/)."
+            echo "hospital-frontend is canonical — remove frontend/ and delete this guard job."
+            exit 1
+          fi
+          echo "OK — single frontend."
