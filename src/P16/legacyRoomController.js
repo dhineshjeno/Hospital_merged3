@@ -4,7 +4,13 @@ const { pool } = require('../config/database');
 
 async function getRoomTypes(req, res, next) {
   try {
-    const result = await pool.query(`SELECT DISTINCT room_type FROM rooms WHERE status = 'Active'`);
+    const result = await pool.query(
+      `SELECT DISTINCT r.room_type 
+       FROM rooms r 
+       JOIN wards w ON r.ward_id = w.ward_id 
+       WHERE w.hospital_id = $1 AND r.status = 'Active'`,
+      [req.hospitalId]
+    );
     const types = result.rows.map((row, i) => ({
       id: i.toString(),
       name: row.room_type,
@@ -27,9 +33,9 @@ async function getRoomsByOccupancy(req, res, next, isOccupied) {
         w.ward_id, w.name as ward_name, w.ward_type
       FROM rooms r
       JOIN wards w ON r.ward_id = w.ward_id
-      WHERE r.status = 'Active' AND ${filter}
+      WHERE w.hospital_id = $1 AND r.status = 'Active' AND ${filter}
     `;
-    const { rows } = await pool.query(query);
+    const { rows } = await pool.query(query, [req.hospitalId]);
 
     const rooms = await Promise.all(rows.map(async row => {
       const room = {
@@ -50,10 +56,10 @@ async function getRoomsByOccupancy(req, res, next, isOccupied) {
           FROM admissions a
           JOIN beds b ON a.current_bed_id = b.bed_id
           JOIN patients p ON a.patient_id = p.patient_id
-          WHERE b.room_id = $1 AND a.status = 'active'
+          WHERE p.hospital_id = $2 AND b.room_id = $1 AND a.status = 'active'
           LIMIT 1
         `;
-        const admissionRes = await pool.query(admissionQuery, [row.room_id]);
+        const admissionRes = await pool.query(admissionQuery, [row.room_id, req.hospitalId]);
         if (admissionRes.rows.length > 0) {
           const adm = admissionRes.rows[0];
           room.patientId = adm.patient_id;
@@ -89,9 +95,9 @@ async function getEmergencyWards(req, res, next) {
       SELECT r.room_id, r.room_number, r.room_type, r.total_beds, r.available_beds, w.name as ward_name
       FROM rooms r
       JOIN wards w ON r.ward_id = w.ward_id
-      WHERE w.ward_type IN ('Emergency', 'ICU') AND r.status = 'Active'
+      WHERE w.hospital_id = $1 AND w.ward_type IN ('Emergency', 'ICU') AND r.status = 'Active'
     `;
-    const { rows } = await pool.query(query);
+    const { rows } = await pool.query(query, [req.hospitalId]);
     const rooms = rows.map(row => ({
       id: row.room_id,
       roomNumber: row.room_number,
@@ -108,7 +114,7 @@ async function getEmergencyWards(req, res, next) {
 
 async function getRoomOccupancyStatus(req, res, next) {
   try {
-    const { rows } = await pool.query(`SELECT SUM(total_beds) as tb, SUM(available_beds) as ab FROM wards`);
+    const { rows } = await pool.query(`SELECT SUM(total_beds) as tb, SUM(available_beds) as ab FROM wards WHERE hospital_id = $1`, [req.hospitalId]);
     const tb = parseInt(rows[0].tb || 0, 10);
     const ab = parseInt(rows[0].ab || 0, 10);
     const occupied = tb - ab;
@@ -132,14 +138,21 @@ async function checkInRoom(req, res, next) {
     const { roomId, patientId, expectedCheckOutDate } = req.body;
     
     // Find an available bed in this room
-    const bedRes = await pool.query(`SELECT bed_id, ward_id FROM beds WHERE room_id = $1 AND status = 'Available' LIMIT 1`, [roomId]);
+    const bedRes = await pool.query(
+      `SELECT b.bed_id, b.ward_id 
+       FROM beds b
+       JOIN wards w ON w.ward_id = b.ward_id
+       WHERE w.hospital_id = $2 AND b.room_id = $1 AND b.status = 'Available' 
+       LIMIT 1`, 
+      [roomId, req.hospitalId]
+    );
     if (bedRes.rows.length === 0) {
       return res.status(400).json({ success: false, message: 'No available beds in this room' });
     }
     const { bed_id, ward_id } = bedRes.rows[0];
 
     // Pick a random doctor (for the legacy adapter)
-    const docRes = await pool.query(`SELECT doctor_id FROM doctors LIMIT 1`);
+    const docRes = await pool.query(`SELECT doctor_id FROM doctors WHERE hospital_id = $1 LIMIT 1`, [req.hospitalId]);
     if (docRes.rows.length === 0) {
         return res.status(400).json({ success: false, message: 'No doctors available to admit patient' });
     }
@@ -186,10 +199,11 @@ async function checkOutRoom(req, res, next) {
       SELECT a.admission_id, a.current_bed_id, a.current_ward_id
       FROM admissions a
       JOIN beds b ON a.current_bed_id = b.bed_id
-      WHERE b.room_id = $1 AND a.status = 'active'
+      JOIN patients p ON p.patient_id = a.patient_id
+      WHERE p.hospital_id = $2 AND b.room_id = $1 AND a.status = 'active'
       LIMIT 1
     `;
-    const { rows } = await pool.query(query, [roomId]);
+    const { rows } = await pool.query(query, [roomId, req.hospitalId]);
     if (rows.length === 0) {
       return res.status(400).json({ success: false, message: 'No active admission found in this room' });
     }

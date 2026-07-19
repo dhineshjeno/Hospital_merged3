@@ -15,17 +15,20 @@ const SCHEDULE_COLUMNS = `
   updated_at
 `;
 
-async function createSchedule(doctorId, data) {
+async function createSchedule(hospitalId, doctorId, data) {
   const result = await query(
     `INSERT INTO doctor_schedules (
       doctor_id, day_of_week, start_time, end_time,
       slot_duration_minutes, max_appointments, effective_from, effective_to, is_active
-    ) VALUES (
-      $1, $2, $3, $4, COALESCE($5, 15), COALESCE($6, 1),
-      COALESCE($7, CURRENT_DATE), $8, COALESCE($9, true)
-    )
+    ) 
+    SELECT 
+      d.doctor_id, $3, $4, $5, COALESCE($6, 15), COALESCE($7, 1),
+      COALESCE($8, CURRENT_DATE), $9, COALESCE($10, true)
+    FROM doctors d 
+    WHERE d.hospital_id = $1 AND d.doctor_id = $2
     RETURNING ${SCHEDULE_COLUMNS}`,
     [
+      hospitalId,
       doctorId,
       data.day_of_week,
       data.start_time,
@@ -41,19 +44,20 @@ async function createSchedule(doctorId, data) {
   return result.rows[0];
 }
 
-async function findScheduleById(doctorScheduleId, doctorId) {
+async function findScheduleById(hospitalId, doctorScheduleId, doctorId) {
   const result = await query(
-    `SELECT ${SCHEDULE_COLUMNS} FROM doctor_schedules
-     WHERE doctor_schedule_id = $1 AND doctor_id = $2`,
-    [doctorScheduleId, doctorId],
+    `SELECT ds.* FROM doctor_schedules ds
+     JOIN doctors d ON d.doctor_id = ds.doctor_id
+     WHERE d.hospital_id = $1 AND ds.doctor_schedule_id = $2 AND ds.doctor_id = $3`,
+    [hospitalId, doctorScheduleId, doctorId],
   );
 
   return result.rows[0] || null;
 }
 
-async function listSchedulesByDoctor(doctorId, filters = {}) {
-  const conditions = ['doctor_id = $1'];
-  const params = [doctorId];
+async function listSchedulesByDoctor(hospitalId, doctorId, filters = {}) {
+  const conditions = ['d.hospital_id = $1', 'ds.doctor_id = $2'];
+  const params = [hospitalId, doctorId];
 
   if (filters.isActive !== undefined && filters.isActive !== null) {
     params.push(filters.isActive);
@@ -66,16 +70,17 @@ async function listSchedulesByDoctor(doctorId, filters = {}) {
   }
 
   const result = await query(
-    `SELECT ${SCHEDULE_COLUMNS} FROM doctor_schedules
+    `SELECT ds.* FROM doctor_schedules ds
+     JOIN doctors d ON d.doctor_id = ds.doctor_id
      WHERE ${conditions.join(' AND ')}
-     ORDER BY day_of_week, start_time`,
+     ORDER BY ds.day_of_week, ds.start_time`,
     params,
   );
 
   return result.rows;
 }
 
-async function updateSchedule(doctorScheduleId, doctorId, data) {
+async function updateSchedule(hospitalId, doctorScheduleId, doctorId, data) {
   const fieldMap = {
     day_of_week: 'day_of_week',
     start_time: 'start_time',
@@ -98,46 +103,57 @@ async function updateSchedule(doctorScheduleId, doctorId, data) {
   });
 
   if (setClauses.length === 0) {
-    return findScheduleById(doctorScheduleId, doctorId);
+    return findScheduleById(hospitalId, doctorScheduleId, doctorId);
   }
 
   setClauses.push('updated_at = now()');
+  params.push(hospitalId);
   params.push(doctorScheduleId);
   params.push(doctorId);
 
   const result = await query(
-    `UPDATE doctor_schedules
+    `UPDATE doctor_schedules ds
      SET ${setClauses.join(', ')}
-     WHERE doctor_schedule_id = $${params.length - 1} AND doctor_id = $${params.length}
-     RETURNING ${SCHEDULE_COLUMNS}`,
+     FROM doctors d
+     WHERE d.doctor_id = ds.doctor_id
+       AND d.hospital_id = ${params.length - 2}
+       AND ds.doctor_schedule_id = ${params.length - 1}
+       AND ds.doctor_id = ${params.length}
+     RETURNING ds.*`,
     params,
   );
 
   return result.rows[0] || null;
 }
 
-async function deactivateSchedule(doctorScheduleId, doctorId) {
+async function deactivateSchedule(hospitalId, doctorScheduleId, doctorId) {
   const result = await query(
-    `UPDATE doctor_schedules
+    `UPDATE doctor_schedules ds
      SET is_active = false, updated_at = now()
-     WHERE doctor_schedule_id = $1 AND doctor_id = $2
-     RETURNING ${SCHEDULE_COLUMNS}`,
-    [doctorScheduleId, doctorId],
+     FROM doctors d
+     WHERE d.doctor_id = ds.doctor_id
+       AND d.hospital_id = $1 
+       AND ds.doctor_schedule_id = $2 
+       AND ds.doctor_id = $3
+     RETURNING ds.*`,
+    [hospitalId, doctorScheduleId, doctorId],
   );
 
   return result.rows[0] || null;
 }
 
-async function findActiveSchedulesForDoctorOnDate(doctorId, dayOfWeek, date) {
+async function findActiveSchedulesForDoctorOnDate(hospitalId, doctorId, dayOfWeek, date) {
   const result = await query(
-    `SELECT ${SCHEDULE_COLUMNS} FROM doctor_schedules
-     WHERE doctor_id = $1
-       AND day_of_week = $2
-       AND is_active = true
-       AND effective_from <= $3
-       AND (effective_to IS NULL OR effective_to >= $3)
-     ORDER BY start_time`,
-    [doctorId, dayOfWeek, date],
+    `SELECT ds.* FROM doctor_schedules ds
+     JOIN doctors d ON d.doctor_id = ds.doctor_id
+     WHERE d.hospital_id = $1
+       AND ds.doctor_id = $2
+       AND ds.day_of_week = $3
+       AND ds.is_active = true
+       AND ds.effective_from <= $4
+       AND (ds.effective_to IS NULL OR ds.effective_to >= $4)
+     ORDER BY ds.start_time`,
+    [hospitalId, doctorId, dayOfWeek, date],
   );
 
   return result.rows;

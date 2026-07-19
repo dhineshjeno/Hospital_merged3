@@ -165,6 +165,24 @@ describe('3. Tenant isolation — THE test that matters most', () => {
     expect([403, 404]).toContain(res.status);
     expect(res.body?.data?.patient_id).toBeUndefined();
   });
+
+  test("P06 Search: Hospital A token cannot find Hospital B's patient", async () => {
+    // The patient seeded above has first_name 'Iso', last_name 'Lation'.
+    // A global search for 'Iso' should return [] for Hospital A.
+    const res = await request(app)
+      .get('/api/v1/search/patients?q=Iso')
+      .set('Authorization', `Bearer ${tokenA}`);
+    
+    // Status should be 200 (search succeeded), but the array MUST be empty.
+    expect(res.status).toBe(200);
+    expect(res.body.data).toBeInstanceOf(Array);
+    
+    // Ensure that patientB is absolutely NOT in the results
+    const found = res.body.data.find(p => p.patient_id === patientBId);
+    expect(found).toBeUndefined();
+    // In fact, since A has no patients named 'Iso', length should be 0.
+    expect(res.body.data.length).toBe(0);
+  });
 });
 
 describe('4. Token rejection', () => {

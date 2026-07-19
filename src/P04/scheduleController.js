@@ -17,8 +17,8 @@ function assertValidId(id, label) {
   }
 }
 
-async function assertDoctorExists(doctorId) {
-  const doctor = await doctorRepository.findDoctorById(doctorId);
+async function assertDoctorExists(hospitalId, doctorId) {
+  const doctor = await doctorRepository.findById(hospitalId, doctorId);
   if (!doctor) {
     throw ApiError.notFound('Doctor not found.');
   }
@@ -48,10 +48,10 @@ function handleScheduleDbError(error, next) {
 async function createSchedule(req, res, next) {
   try {
     assertValidId(req.params.doctorId, 'doctorId');
-    await assertDoctorExists(req.params.doctorId);
+    await assertDoctorExists(req.hospitalId, req.params.doctorId);
     validateCreateSchedule(req.body);
 
-    const schedule = await scheduleRepository.createSchedule(req.params.doctorId, req.body);
+    const schedule = await scheduleRepository.createSchedule(req.hospitalId, req.params.doctorId, req.body);
 
     res.status(201).json({
       status: 'ok',
@@ -65,7 +65,7 @@ async function createSchedule(req, res, next) {
 async function listSchedules(req, res, next) {
   try {
     assertValidId(req.params.doctorId, 'doctorId');
-    await assertDoctorExists(req.params.doctorId);
+    await assertDoctorExists(req.hospitalId, req.params.doctorId);
 
     let isActive;
     if (req.query.isActive === 'true') isActive = true;
@@ -75,7 +75,7 @@ async function listSchedules(req, res, next) {
       ? Number(req.query.dayOfWeek)
       : undefined;
 
-    const schedules = await scheduleRepository.listSchedulesByDoctor(req.params.doctorId, {
+    const schedules = await scheduleRepository.listSchedulesByDoctor(req.hospitalId, req.params.doctorId, {
       isActive,
       dayOfWeek,
     });
@@ -120,12 +120,12 @@ async function deactivateSchedule(req, res, next) {
     assertValidId(req.params.doctorId, 'doctorId');
     assertValidId(req.params.id, 'doctor_schedule_id');
 
-    const existing = await scheduleRepository.findScheduleById(req.params.id, req.params.doctorId);
+    const existing = await scheduleRepository.findScheduleById(req.hospitalId, req.params.id, req.params.doctorId);
     if (!existing) {
       throw ApiError.notFound('Schedule not found for this doctor.');
     }
 
-    const schedule = await scheduleRepository.deactivateSchedule(req.params.id, req.params.doctorId);
+    const schedule = await scheduleRepository.deactivateSchedule(req.hospitalId, req.params.id, req.params.doctorId);
 
     res.json({
       status: 'ok',
@@ -142,7 +142,7 @@ const HOSPITAL_TIMEZONE = 'Asia/Kolkata';
 async function getAvailableSlots(req, res, next) {
   try {
     assertValidId(req.params.doctorId, 'doctorId');
-    await assertDoctorExists(req.params.doctorId);
+    await assertDoctorExists(req.hospitalId, req.params.doctorId);
     validateAvailableSlotsQuery(req.query);
 
     const date = req.query.date;
@@ -154,6 +154,7 @@ async function getAvailableSlots(req, res, next) {
     const dayOfWeek = dayOfWeekResult.rows[0].day_of_week;
 
     const schedules = await scheduleRepository.findActiveSchedulesForDoctorOnDate(
+      req.hospitalId,
       req.params.doctorId,
       dayOfWeek,
       date,
@@ -179,11 +180,12 @@ async function getAvailableSlots(req, res, next) {
            + EXTRACT(MINUTE FROM scheduled_start_at AT TIME ZONE $3)::int AS start_minutes,
          EXTRACT(HOUR FROM scheduled_end_at AT TIME ZONE $3)::int * 60
            + EXTRACT(MINUTE FROM scheduled_end_at AT TIME ZONE $3)::int AS end_minutes
-       FROM appointments
-       WHERE doctor_id = $1
-         AND status IN ('booked', 'confirmed', 'checked_in', 'in_consultation')
-         AND (scheduled_start_at AT TIME ZONE $3)::date = $2::date`,
-      [req.params.doctorId, date, HOSPITAL_TIMEZONE],
+       FROM appointments a
+       JOIN patients p ON p.patient_id = a.patient_id
+       WHERE p.hospital_id = $1 AND a.doctor_id = $2
+         AND a.status IN ('booked', 'confirmed', 'checked_in', 'in_consultation')
+         AND (a.scheduled_start_at AT TIME ZONE $4)::date = $3::date`,
+      [req.hospitalId, req.params.doctorId, date, HOSPITAL_TIMEZONE],
     );
 
     const bookedRanges = bookedResult.rows.map((row) => ({

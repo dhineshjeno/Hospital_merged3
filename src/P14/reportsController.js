@@ -20,7 +20,7 @@ function parseDateRange(query) {
 async function patientDemographics(req, res, next) {
   try {
     const { dateFrom, dateTo } = parseDateRange(req.query);
-    const data = await reportsRepository.getPatientDemographics(dateFrom, dateTo);
+    const data = await reportsRepository.getPatientDemographics(req.hospitalId, dateFrom, dateTo);
     res.json({ status: 'ok', data: { date_from: dateFrom, date_to: dateTo, ...data } });
   } catch (error) { next(error); }
 }
@@ -28,7 +28,7 @@ async function patientDemographics(req, res, next) {
 async function appointmentAnalytics(req, res, next) {
   try {
     const { dateFrom, dateTo } = parseDateRange(req.query);
-    const data = await reportsRepository.getAppointmentAnalytics(dateFrom, dateTo);
+    const data = await reportsRepository.getAppointmentAnalytics(req.hospitalId, dateFrom, dateTo);
     res.json({ status: 'ok', data: { date_from: dateFrom, date_to: dateTo, ...data } });
   } catch (error) { next(error); }
 }
@@ -36,7 +36,7 @@ async function appointmentAnalytics(req, res, next) {
 async function doctorUtilisation(req, res, next) {
   try {
     const { dateFrom, dateTo } = parseDateRange(req.query);
-    const data = await reportsRepository.getDoctorUtilisation(dateFrom, dateTo);
+    const data = await reportsRepository.getDoctorUtilisation(req.hospitalId, dateFrom, dateTo);
     res.json({ status: 'ok', data: { date_from: dateFrom, date_to: dateTo, doctors: data } });
   } catch (error) { next(error); }
 }
@@ -45,7 +45,7 @@ async function medicineUsage(req, res, next) {
   try {
     const { dateFrom, dateTo } = parseDateRange(req.query);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
-    const data = await reportsRepository.getMedicineUsage(dateFrom, dateTo, limit);
+    const data = await reportsRepository.getMedicineUsage(req.hospitalId, dateFrom, dateTo, limit);
     res.json({ status: 'ok', data: { date_from: dateFrom, date_to: dateTo, ...data } });
   } catch (error) { next(error); }
 }
@@ -53,7 +53,7 @@ async function medicineUsage(req, res, next) {
 async function revenueReport(req, res, next) {
   try {
     const { dateFrom, dateTo } = parseDateRange(req.query);
-    const data = await reportsRepository.getRevenueReport(dateFrom, dateTo);
+    const data = await reportsRepository.getRevenueReport(req.hospitalId, dateFrom, dateTo);
     res.json({ status: 'ok', data: { date_from: dateFrom, date_to: dateTo, ...data } });
   } catch (error) { next(error); }
 }
@@ -61,7 +61,7 @@ async function revenueReport(req, res, next) {
 async function labReport(req, res, next) {
   try {
     const { dateFrom, dateTo } = parseDateRange(req.query);
-    const data = await reportsRepository.getLabReport(dateFrom, dateTo);
+    const data = await reportsRepository.getLabReport(req.hospitalId, dateFrom, dateTo);
     res.json({ status: 'ok', data: { date_from: dateFrom, date_to: dateTo, ...data } });
   } catch (error) { next(error); }
 }
@@ -69,7 +69,7 @@ async function labReport(req, res, next) {
 async function queueAnalytics(req, res, next) {
   try {
     const { dateFrom, dateTo } = parseDateRange(req.query);
-    const data = await reportsRepository.getQueueAnalytics(dateFrom, dateTo);
+    const data = await reportsRepository.getQueueAnalytics(req.hospitalId, dateFrom, dateTo);
     res.json({ status: 'ok', data: { date_from: dateFrom, date_to: dateTo, ...data } });
   } catch (error) { next(error); }
 }
@@ -77,7 +77,7 @@ async function queueAnalytics(req, res, next) {
 async function bedOccupancy(req, res, next) {
   try {
     const { dateFrom, dateTo } = parseDateRange(req.query);
-    const data = await reportsRepository.getBedOccupancyTrends(dateFrom, dateTo);
+    const data = await reportsRepository.getBedOccupancyTrends(req.hospitalId, dateFrom, dateTo);
     res.json({ status: 'ok', data: { date_from: dateFrom, date_to: dateTo, ...data } });
   } catch (error) { next(error); }
 }

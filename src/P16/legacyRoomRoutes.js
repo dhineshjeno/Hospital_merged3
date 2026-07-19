@@ -4,11 +4,11 @@ const { requirePermission } = require('../middleware/roleBasedAccess');
 
 const router = express.Router();
 
-router.get('/types', legacyRoomController.getRoomTypes);
-router.get('/available', legacyRoomController.getAvailableRooms);
-router.get('/occupied', legacyRoomController.getOccupiedRooms);
-router.get('/occupancy-status', legacyRoomController.getRoomOccupancyStatus);
-router.get('/emergency-wards', legacyRoomController.getEmergencyWards);
+router.get('/types', requirePermission('wards', 'read'), legacyRoomController.getRoomTypes);
+router.get('/available', requirePermission('wards', 'read'), legacyRoomController.getAvailableRooms);
+router.get('/occupied', requirePermission('wards', 'read'), legacyRoomController.getOccupiedRooms);
+router.get('/occupancy-status', requirePermission('wards', 'read'), legacyRoomController.getRoomOccupancyStatus);
+router.get('/emergency-wards', requirePermission('wards', 'read'), legacyRoomController.getEmergencyWards);
 router.post('/check-in', requirePermission('admissions', 'create'), legacyRoomController.checkInRoom);
 router.post('/check-out', requirePermission('admissions', 'update'), legacyRoomController.checkOutRoom);
 

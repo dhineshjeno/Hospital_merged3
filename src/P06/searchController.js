@@ -16,8 +16,8 @@ function parsePagination(q, defaultSize = 20) {
   };
 }
 
-async function assertPatientExists(patientId) {
-  const patient = await patientRepository.findPatientById(patientId);
+async function assertPatientExists(hospitalId, patientId) {
+  const patient = await patientRepository.findById(hospitalId, patientId);
   if (!patient) throw ApiError.notFound('Patient not found.');
   return patient;
 }
@@ -30,6 +30,7 @@ async function searchPatients(req, res, next) {
     const { page, pageSize } = parsePagination(req.query);
 
     const { rows, totalCount } = await searchRepository.searchPatients(
+      req.hospitalId,
       req.query.q,
       page,
       pageSize,
@@ -56,7 +57,7 @@ async function getMedicalHistory(req, res, next) {
   try {
     assertValidId(req.params.patientId, 'patient_id');
 
-    const history = await searchRepository.getPatientMedicalHistory(req.params.patientId);
+    const history = await searchRepository.getPatientMedicalHistory(req.hospitalId, req.params.patientId);
     if (!history) throw ApiError.notFound('Patient not found.');
 
     res.json({ status: 'ok', data: history });
@@ -70,11 +71,11 @@ async function getMedicalHistory(req, res, next) {
 async function getVisitHistory(req, res, next) {
   try {
     assertValidId(req.params.patientId, 'patient_id');
-    await assertPatientExists(req.params.patientId);
+    await assertPatientExists(req.hospitalId, req.params.patientId);
 
     const { page, pageSize } = parsePagination(req.query, 10);
     const { rows, totalCount } = await searchRepository.getVisitHistory(
-      req.params.patientId, page, pageSize,
+      req.hospitalId, req.params.patientId, page, pageSize,
     );
 
     res.json({
@@ -95,11 +96,11 @@ async function getVisitHistory(req, res, next) {
 async function getMedicationHistory(req, res, next) {
   try {
     assertValidId(req.params.patientId, 'patient_id');
-    await assertPatientExists(req.params.patientId);
+    await assertPatientExists(req.hospitalId, req.params.patientId);
 
     const { page, pageSize } = parsePagination(req.query, 10);
     const { rows, totalCount } = await searchRepository.getMedicationHistory(
-      req.params.patientId, page, pageSize,
+      req.hospitalId, req.params.patientId, page, pageSize,
     );
 
     res.json({
@@ -120,11 +121,11 @@ async function getMedicationHistory(req, res, next) {
 async function listAllergies(req, res, next) {
   try {
     assertValidId(req.params.patientId, 'patient_id');
-    await assertPatientExists(req.params.patientId);
+    await assertPatientExists(req.hospitalId, req.params.patientId);
 
     const includeInactive = req.query.includeInactive === 'true';
     const allergies = await searchRepository.listAllergies(
-      req.params.patientId, includeInactive,
+      req.hospitalId, req.params.patientId, includeInactive,
     );
 
     res.json({ status: 'ok', data: allergies });
@@ -136,10 +137,10 @@ async function listAllergies(req, res, next) {
 async function createAllergy(req, res, next) {
   try {
     assertValidId(req.params.patientId, 'patient_id');
-    await assertPatientExists(req.params.patientId);
+    await assertPatientExists(req.hospitalId, req.params.patientId);
     validateCreateAllergy(req.body);
 
-    const allergy = await searchRepository.createAllergy(req.params.patientId, req.body);
+    const allergy = await searchRepository.createAllergy(req.hospitalId, req.params.patientId, req.body);
     res.status(201).json({ status: 'ok', data: allergy });
   } catch (error) {
     if (error.code === '23505') {
@@ -162,7 +163,7 @@ async function deactivateAllergy(req, res, next) {
     assertValidId(req.params.allergyId, 'patient_allergy_id');
 
     const allergy = await searchRepository.deactivateAllergy(
-      req.params.allergyId, req.params.patientId,
+      req.hospitalId, req.params.allergyId, req.params.patientId,
     );
     if (!allergy) throw ApiError.notFound('Allergy not found for this patient.');
 
@@ -178,7 +179,7 @@ async function getEmergencyContact(req, res, next) {
   try {
     assertValidId(req.params.patientId, 'patient_id');
 
-    const contact = await searchRepository.getEmergencyContact(req.params.patientId);
+    const contact = await searchRepository.getEmergencyContact(req.hospitalId, req.params.patientId);
     if (!contact) throw ApiError.notFound('Patient not found.');
 
     res.json({ status: 'ok', data: contact });
