@@ -9,9 +9,9 @@ import Card from '../../components/Card';
 import Alert from '../../components/Alert';
 
 const GENDERS = [
-  { value: 'male', label: 'Male' },
-  { value: 'female', label: 'Female' },
-  { value: 'other', label: 'Other' },
+  { value: 'Male', label: 'Male' },
+  { value: 'Female', label: 'Female' },
+  { value: 'Other', label: 'Other' },
 ];
 
 const STATUSES = [
@@ -58,8 +58,7 @@ export default function EditPatient() {
     try {
       await updatePatient(id, {
         name, age: Number(age),
-        gender: gender as 'male' | 'female' | 'other',
-        phone, bloodGroup, address,
+gender: gender as 'Male' | 'Female' | 'Other',        phone, bloodGroup, address,
         status: status as 'admitted' | 'discharged' | 'outpatient',
       });
       navigate(`/patients/${id}`);

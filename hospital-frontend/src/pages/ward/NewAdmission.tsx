@@ -70,8 +70,7 @@ export default function NewAdmission() {
     if (!wardId || !roomId) { setBeds([]); setBedId(''); return; }
     setIsLoadingBeds(true);
     getBedsForWard(wardId, 'Available')
-      .then((allBeds) => setBeds(allBeds.filter((b) => b.status === 'Available' || b.status === 'available')))
-      .catch(() => setError('Could not load beds for this room'))
+.then((allBeds) => setBeds(allBeds.filter((b) => b.status.toLowerCase() === 'available')))      .catch(() => setError('Could not load beds for this room'))
       .finally(() => setIsLoadingBeds(false));
   }, [wardId, roomId]);
 

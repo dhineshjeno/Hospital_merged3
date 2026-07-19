@@ -67,9 +67,7 @@ function adaptConsultation(c: P2Consultation): Consultation {
 }
 
 function adaptVital(v: P2Vital): VitalRecord {
-  const bp = v.blood_pressure_systolic && v.blood_pressure_diastolic
-    ? `${v.blood_pressure_systolic}/${v.blood_pressure_diastolic}`
-    : '';
+  
   return {
     id: v.vital_id,
     patientId: v.patient_id,

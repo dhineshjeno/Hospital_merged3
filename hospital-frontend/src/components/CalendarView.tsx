@@ -62,8 +62,8 @@ export default function CalendarView({ appointments, onChanged }: CalendarViewPr
     try {
       await updateAppointment(String(selected.id), {
         patientId: selected.patientId, doctorId: selected.doctorId,
-        date: rescheduleDate, time: rescheduleTime, reason: selected.reason, status: selected.status,
-      });
+date: rescheduleDate, time: rescheduleTime, reason: selected.reason,
+status: (selected.status === 'in-progress' ? 'scheduled' : selected.status) as 'scheduled' | 'completed' | 'cancelled' | 'no-show',      });
       setSelected(null);
       setSelectedDate(null);
       onChanged();

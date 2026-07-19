@@ -57,8 +57,8 @@ export default function EditAppointment() {
     setIsSubmitting(true);
     try {
       await updateAppointment(id, {
-        patientId: Number(patientId),
-        doctorId: Number(doctorId),
+       patientId: patientId,
+doctorId: doctorId,
         date, time, reason,
         status: status as 'scheduled' | 'completed' | 'cancelled',
       });

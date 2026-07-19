@@ -10,8 +10,7 @@ interface HealthTimelineProps {
 }
 
 export default function HealthTimeline({ appointments }: HealthTimelineProps) {
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [fromDate, setFromDate] = useState('');
+const [expandedId, setExpandedId] = useState<string | null>(null);  const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
   const visits = appointments

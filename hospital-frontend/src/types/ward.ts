@@ -14,8 +14,7 @@ export interface Bed {
   id: string;
   wardId: string;
   bedNumber: string;
-  status: 'available' | 'occupied' | 'maintenance' | 'reserved';
-  bedType?: string;
+status: string;  bedType?: string;
 }
 
 export interface Admission {

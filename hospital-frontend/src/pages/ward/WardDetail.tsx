@@ -123,7 +123,6 @@ export default function WardDetail() {
               <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
                 {beds.map((bed) => {
                   const admission = getAdmissionForBed(bed.id);
-                  const bedStatus = bed.status.charAt(0).toUpperCase() + bed.status.slice(1);
                   return (
                     <div
                       key={bed.id}
@@ -146,8 +145,7 @@ export default function WardDetail() {
                           <p className="text-xs text-gray-400">Since {admission.admissionDate}</p>
                         </button>
                       )}
-                      {!admission && (bed.status === 'Available' || bed.status === 'available') && (
-                        <button
+{!admission && bed.status.toLowerCase() === 'available' && (                        <button
                           onClick={() => navigate(`/admissions/new?bedId=${bed.id}&wardId=${id}`)}
                           className="text-xs text-primary font-medium mt-1 hover:underline"
                         >

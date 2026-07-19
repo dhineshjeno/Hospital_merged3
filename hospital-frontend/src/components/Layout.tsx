@@ -51,8 +51,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   }
 
   const ADMIN_ROLES = ['admin'];
-const CLINICAL_ROLES = ['doctor', 'nurse'];
-const SUPPORT_ROLES = ['pharmacist', 'accountant', 'lab_technician', 'staff'];
+
 
 const navItems = user?.role === 'patient'
   ? PATIENT_NAV_ITEMS

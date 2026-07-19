@@ -10,11 +10,10 @@ import Alert from '../../components/Alert';
 import Select from '../../components/Select';
 
 const GENDERS = [
-  { value: 'male', label: 'Male' },
-  { value: 'female', label: 'Female' },
-  { value: 'other', label: 'Other' },
+  { value: 'Male', label: 'Male' },
+  { value: 'Female', label: 'Female' },
+  { value: 'Other', label: 'Other' },
 ];
-
 const STATUSES = [
   { value: 'admitted', label: 'Admitted' },
   { value: 'discharged', label: 'Discharged' },
@@ -45,8 +44,7 @@ export default function AddPatient() {
       await createPatient({
         name,
         age: Number(age),
-        gender: gender as 'male' | 'female' | 'other',
-        phone,
+gender: gender as 'Male' | 'Female' | 'Other',        phone,
         bloodGroup,
         address,
         status: status as 'admitted' | 'discharged' | 'outpatient',

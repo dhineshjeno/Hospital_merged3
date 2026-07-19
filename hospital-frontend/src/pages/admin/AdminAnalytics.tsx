@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { getPatients } from '../../services/patientService';
+import { BarChart, Bar, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';import { getPatients } from '../../services/patientService';
 import { getAppointments } from '../../services/appointmentService';
 import { getInvoices } from '../../services/billingService';
 import type { Patient } from '../../types/patient';
