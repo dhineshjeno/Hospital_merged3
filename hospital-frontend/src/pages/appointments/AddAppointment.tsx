@@ -129,7 +129,7 @@ export default function AddAppointment() {
 
           <Input
             label="Time"
-            type="time"
+            type="time" 
             value={time}
             onChange={setTime}
           />
