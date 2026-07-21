@@ -43,6 +43,7 @@ const wardRoutes = require('./P13/wardRoutes');
 const pharmacyRoutes = require('./P11/pharmacyRoutes');
 const queueRoutes = require('./P05/queueRoutes');
 const dictionaryRoutes = require('./P17_Dictionary/dictionaryRoutes');
+const purchaseRoutes = require('./P15_Purchase/purchaseRoutes');
 // ── Middleware ──────────────────────────────────────────────────────────────
 const { authenticateToken } = require('./middleware/auth');
 const { tenantMiddleware } = require('./middleware/tenantMiddleware');
@@ -138,6 +139,7 @@ app.use('/api/v1/lab', labRoutes);
 app.use('/api/v1/billing', billingRoutes);
 app.use('/api/v1/queue', queueRoutes);
 app.use('/api/v1/pharmacy', pharmacyRoutes);
+app.use('/api/v1/purchases', purchaseRoutes);
 app.use('/api/v1/dictionary', dictionaryRoutes);
 app.use('/api/v1/wards', wardRoutes);
 app.use('/api/v1/admissions', wardRoutes);

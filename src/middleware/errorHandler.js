@@ -156,6 +156,7 @@ const errorHandler = (err, req, res, next) => {
     // Production: Log only essential info
     auditData.error_message = 'Check server logs';
     console.error(`[${code}] ${statusCode} ${message} - ${req.method} ${req.path}`);
+    if (statusCode === 500) console.error(err);
   }
 
   // Log to audit system

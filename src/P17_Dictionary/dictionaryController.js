@@ -1,5 +1,5 @@
 const dictionaryRepository = require('./dictionaryRepository');
-const { ApiError } = require('../utils/ApiError');
+const ApiError = require('../utils/ApiError');
 
 exports.getDictionary = async (req, res, next) => {
     try {
