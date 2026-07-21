@@ -61,6 +61,7 @@ const ROLE_PERMISSIONS = {
     payments: ['create', 'read', 'update'],
 
     // Pharmacy
+    medicines_dictionary: ['create', 'read', 'update'],
     medicines: ['create', 'read', 'update'],
     medicine_inventory: ['create', 'read', 'update'],
 
@@ -147,6 +148,7 @@ const ROLE_PERMISSIONS = {
     // Prescription fulfillment
     prescriptions: ['read', 'update'],
     // Pharmacist owns inventory: receive batches, adjust stock, dispense.
+    medicines_dictionary: ['create', 'read'],
     medicines: ['create', 'read', 'update'],
     medicine_inventory: ['create', 'read', 'update'],
 
