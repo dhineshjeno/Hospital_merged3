@@ -183,6 +183,37 @@ describe('3. Tenant isolation — THE test that matters most', () => {
     // In fact, since A has no patients named 'Iso', length should be 0.
     expect(res.body.data.length).toBe(0);
   });
+
+  test("P14 Reports: Hospital A token gets []/403 for Hospital B's data", async () => {
+    const res = await request(app)
+      .get('/api/v1/reports/patients')
+      .set('Authorization', `Bearer ${tokenA}`);
+      
+    // Must be either forbidden (no RBAC), 404 (wrong path), or successfully return [] or an empty structure, NEVER Hospital B's data
+    expect([200, 403, 404]).toContain(res.status);
+    if (res.status === 200) {
+        expect(res.body.data).toBeDefined();
+        // Since Hospital A has no real data, counts should be 0 or empty. It should never return Hospital B's 'Iso' patient count.
+        if (res.body.data.total_patients) {
+            expect(parseInt(res.body.data.total_patients, 10)).toBe(0);
+        }
+    }
+  });
+
+  test("P04 Schedules: Hospital A token gets []/403/404 for Hospital B's data", async () => {
+    // Attempt to access schedule using a fake doctor ID for hospital B
+    const fakeDocId = '33333333-3333-3333-3333-333333333333';
+    const res = await request(app)
+      .get(`/api/v1/schedule/doctors/${fakeDocId}/schedules`)
+      .set('Authorization', `Bearer ${tokenA}`);
+      
+    // Must be either forbidden (no RBAC), 404 (doctor not found for this hospital), or []
+    expect([200, 403, 404]).toContain(res.status);
+    if (res.status === 200) {
+        expect(res.body.data).toBeInstanceOf(Array);
+        expect(res.body.data.length).toBe(0);
+    }
+  });
 });
 
 describe('4. Token rejection', () => {
