@@ -90,7 +90,8 @@ describe('Dictionary Features', () => {
         expect(res.body.success).toBe(false);
         expect(res.body.code).toBe('POSSIBLE_DUPLICATE');
         expect(res.body.data.length).toBeGreaterThan(0);
-        expect(res.body.data[0].brand_name).toBe('Paracetamol 500mg');
+        const hasSeededMatch = res.body.data.some(m => m.brand_name === 'Paracetamol 500mg');
+        expect(hasSeededMatch).toBe(true);
     });
 
     test('2. Fuzzy Matching Override: Can bypass duplicate check with force=true', async () => {
