@@ -62,6 +62,7 @@ const ROLE_PERMISSIONS = {
 
     // Pharmacy
     purchases: ['create', 'read', 'approve'],
+    patient_wallet: ['create', 'read', 'update'],
     medicines_dictionary: ['create', 'read', 'update'],
     medicines: ['create', 'read', 'update'],
     medicine_inventory: ['create', 'read', 'update'],

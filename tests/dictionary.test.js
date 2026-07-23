@@ -66,16 +66,17 @@ afterAll(async () => {
 
 describe('Dictionary Features', () => {
     test('1. Fuzzy Matching: Prevents inserting Paracetamol if Paracetmol exists', async () => {
+        const ts = Date.now();
         // Seed Paracetamol directly
         await query(
             `INSERT INTO medicines_dictionary (hospital_id, medicine_code, brand_name, generic_name, status) 
-             VALUES ($1, 'MED-001', 'Paracetamol 500mg', 'Paracetamol', 'approved')`,
-            [HOSPITAL_A]
+             VALUES ($1, $2, 'Paracetamol 500mg', 'Paracetamol', 'approved')`,
+            [HOSPITAL_A, `MED-001-${ts}`]
         );
 
-        // Attempt to request Paracetmol
+        // Attempt to request Paracetmol (typo version)
         const reqData = {
-            medicine_code: 'MED-002',
+            medicine_code: `MED-002-${ts}`,
             brand_name: 'Paracetmol 500',
             generic_name: 'Paracetmol'
         };
@@ -93,8 +94,9 @@ describe('Dictionary Features', () => {
     });
 
     test('2. Fuzzy Matching Override: Can bypass duplicate check with force=true', async () => {
+        const ts2 = Date.now();
         const reqData = {
-            medicine_code: 'MED-002',
+            medicine_code: `MED-002-${ts2}`,
             brand_name: 'Paracetmol 500',
             generic_name: 'Paracetmol',
             force: true
@@ -118,8 +120,8 @@ describe('Dictionary Features', () => {
 
         expect(res.status).toBe(200);
         
-        // Ensure Hospital B gets empty array or doesn't have MED-001
-        const found = res.body.data.find(m => m.medicine_code === 'MED-001');
-        expect(found).toBeUndefined();
+        // Ensure Hospital B gets items only from Hospital B (none seeded)
+        const allBelongToHospitalA = res.body.data.some(m => m.hospital_id === HOSPITAL_A);
+        expect(allBelongToHospitalA).toBe(false);
     });
 });
