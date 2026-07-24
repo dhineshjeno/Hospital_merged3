@@ -75,6 +75,10 @@ const ROLE_PERMISSIONS = {
     audit_logs: ['read'],
     consent_records: ['read'],
 
+    // Search & Reports
+    search: ['read'],
+    reports: ['read'],
+
     // System
     system: ['restart', 'backup', 'configure'],
   },
@@ -100,6 +104,8 @@ const ROLE_PERMISSIONS = {
     queue: ['read', 'update'],
     medicines: ['read'],
     doctor_schedules: ['read', 'update:own'],
+    search: ['read'],
+    reports: ['read'],
 
     // Admissions (their patients only)
     admissions: ['create', 'read'],
@@ -130,6 +136,7 @@ const ROLE_PERMISSIONS = {
     appointments: ['read', 'update'],
     queue: ['read', 'update'],
     medicines: ['read'],
+    search: ['read'],
 
     // Admissions & Ward
     admissions: ['read'],
@@ -176,6 +183,7 @@ const ROLE_PERMISSIONS = {
 
     // Purchase & Inventory
     purchase_orders: ['read', 'approve'],
+    reports: ['read'],
     vendors: ['read'],
 
     // Reports
